@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sunday Aesthetics — Admin</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pink: #e8b4bc;
+    --pink-deep: #d391a0;
+    --ink: #2b2320;
+    --paper: #fdfaf7;
+    --line: #e9dfda;
+    --ok: #6f9c76;
+    --err: #c1615a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Cormorant Garamond', serif;
+    display: flex;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+  .wrap { width: 100%; max-width: 480px; }
+  h1 {
+    text-align: center;
+    font-weight: 500;
+    font-size: 2.4rem;
+    color: var(--pink-deep);
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+  }
+  .sub {
+    text-align: center;
+    font-size: 1.05rem;
+    color: #8a7d76;
+    margin-bottom: 36px;
+  }
+  form {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 32px;
+  }
+  label {
+    display: block;
+    font-size: 1.05rem;
+    margin: 18px 0 6px;
+    color: var(--ink);
+  }
+  label:first-child { margin-top: 0; }
+  input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.05rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  input[type="file"] { padding: 8px; }
+  .preview {
+    margin-top: 10px;
+    max-width: 140px;
+    border-radius: 8px;
+    display: none;
+  }
+  button {
+    margin-top: 28px;
+    width: 100%;
+    padding: 14px;
+    background: var(--pink-deep);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.15rem;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  button:hover { background: var(--pink); }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .status {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 1.05rem;
+    display: none;
+  }
+  .status.ok { color: var(--ok); display: block; }
+  .status.err { color: var(--err); display: block; }
+  .lock {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #a99e97;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Sunday Aesthetics</h1>
+  <div class="sub">Add a new product</div>
+
+  <form id="productForm">
+    <label for="password">Admin password</label>
+    <input type="password" id="password" required autocomplete="current-password">
+
+    <label for="category">Category</label>
+    <select id="category" required>
+      <option value="">Select a category</option>
+      <option>Jorts</option>
+      <option>Hoodies/Sweaters</option>
+      <option>Racing Jackets</option>
+      <option>Oversized T-shirts</option>
+      <option>Summer Pants</option>
+    </select>
+
+    <label for="title">Product name</label>
+    <input type="text" id="title" required>
+
+    <label for="price">Price (MAD)</label>
+    <input type="number" id="price" min="0" step="1" required>
+
+    <label for="description">Description</label>
+    <textarea id="description"></textarea>
+
+    <label for="image">Product image</label>
+    <input type="file" id="image" accept="image/*">
+    <img class="preview" id="preview" alt="">
+
+    <button type="submit" id="submitBtn">Add product</button>
+    <div class="status" id="status"></div>
+  </form>
+  <div class="lock">Only for Sunday Aesthetics staff</div>
+</div>
+
+<script>
+  // ⚠️ Set this to your deployed Worker URL after you create it in Cloudflare
+  const WORKER_URL = "https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev";
+
+  const form = document.getElementById("productForm");
+  const status = document.getElementById("status");
+  const submitBtn = document.getElementById("submitBtn");
+  const imageInput = document.getElementById("image");
+  const preview = document.getElementById("preview");
+
+  let imageBase64 = null;
+
+  imageInput.addEventListener("change", () => {
+    const file = imageInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      imageBase64 = reader.result;
+      preview.src = imageBase64;
+      preview.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    status.className = "status";
+    status.textContent = "";
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Adding…";
+
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          password: document.getElementById("password").value,
+          category: document.getElementById("category").value,
+          title: document.getElementById("title").value,
+          price: document.getElementById("price").value,
+          description: document.getElementById("description").value,
+          imageBase64,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Something went wrong");
+      }
+
+      status.className = "status ok";
+      status.textContent = "Product added ✓";
+      form.reset();
+      preview.style.display = "none";
+      imageBase64 = null;
+    } catch (err) {
+      status.className = "status err";
+      status.textContent = err.message;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Add product";
+    }
+  });
+</script>
+</body>
+</html>
