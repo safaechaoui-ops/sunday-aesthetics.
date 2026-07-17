@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sunday Aesthetics — Admin</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pink: #e8b4bc;
+    --pink-deep: #d391a0;
+    --ink: #2b2320;
+    --paper: #fdfaf7;
+    --line: #e9dfda;
+    --ok: #6f9c76;
+    --err: #c1615a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Cormorant Garamond', serif;
+    display: flex;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+  .wrap { width: 100%; max-width: 560px; }
+  h1 {
+    text-align: center;
+    font-weight: 500;
+    font-size: 2.4rem;
+    color: var(--pink-deep);
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+  }
+  .sub { text-align: center; font-size: 1.05rem; color: #8a7d76; margin-bottom: 28px; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; }
+  .tab {
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: white;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.05rem;
+  }
+  .tab.active { background: var(--pink-deep); color: white; border-color: var(--pink-deep); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  form, .card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px;
+  }
+  label { display: block; font-size: 1.02rem; margin: 16px 0 6px; }
+  label:first-child, .field-row label { margin-top: 0; }
+  input, select, textarea {
+    width: 100%;
+    padding: 9px 11px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.02rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  textarea { min-height: 80px; resize: vertical; }
+  input[type="file"] { padding: 8px; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+
+  .previews { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .previews img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; }
+
+  fieldset { border: 1px dashed var(--line); border-radius: 10px; margin-top: 18px; padding: 14px; }
+  legend { padding: 0 6px; font-size: 1.05rem; color: var(--pink-deep); }
+  .variant-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .variant-row input { flex: 1; }
+  .variant-row button { flex: 0 0 auto; width: auto; padding: 8px 12px; margin-top: 0; }
+  .add-variant { background: transparent; color: var(--pink-deep); border: 1px solid var(--pink-deep); }
+  .add-variant:hover { background: var(--pink); color: white; }
+
+  button.primary {
+    margin-top: 24px;
+    width: 100%;
+    padding: 14px;
+    background: var(--pink-deep);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.15rem;
+    cursor: pointer;
+  }
+  button.primary:hover { background: var(--pink); }
+  button.primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .status { margin-top: 16px; text-align: center; font-size: 1.02rem; display: none; }
+  .status.ok { color: var(--ok); display: block; }
+  .status.err { color: var(--err); display: block; }
+
+  .product-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .product-item:last-child { border-bottom: none; }
+  .product-item img { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; background: var(--paper); }
+  .product-item .info { flex: 1; }
+  .product-item .info .name { font-size: 1.1rem; }
+  .product-item .info .price { color: #8a7d76; font-size: 0.95rem; }
+  .del-btn {
+    background: transparent;
+    border: 1px solid var(--err);
+    color: var(--err);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+  }
+  .del-btn:hover { background: var(--err); color: white; }
+
+  .lock { text-align: center; margin-top: 14px; font-size: 0.9rem; color: #a99e97; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Sunday Aesthetics</h1>
+  <div class="sub">Store admin</div>
+
+  <label for="password">Admin password</label>
+  <input type="password" id="password" style="margin-bottom:20px;" autocomplete="current-password">
+
+  <div class="tabs">
+    <div class="tab active" data-tab="add">Add product</div>
+    <div class="tab" data-tab="manage">Manage products</div>
+  </div>
+
+  <!-- ADD PRODUCT -->
+  <div class="panel active" id="panel-add">
+    <form id="productForm">
+      <label for="category">Category</label>
+      <select id="category" required>
+        <option value="">Select a category</option>
+        <option>Jorts</option>
+        <option>Hoodies/Sweaters</option>
+        <option>Racing Jackets</option>
+        <option>Oversized T-shirts</option>
+        <option>Summer Pants</option>
+      </select>
+
+      <label for="title">Product name</label>
+      <input type="text" id="title" required>
+
+      <div class="row">
+        <div>
+          <label for="price">Base price (MAD)</label>
+          <input type="number" id="price" min="0" step="1" required>
+        </div>
+        <div>
+          <label for="stock">Stock (if no variants)</label>
+          <input type="number" id="stock" min="0" step="1">
+        </div>
+      </div>
+
+      <label for="description">Description</label>
+      <textarea id="description"></textarea>
+
+      <label for="tags">Tags (comma separated)</label>
+      <input type="text" id="tags" placeholder="summer, streetwear, y2k">
+
+      <label for="seoTitle">SEO title</label>
+      <input type="text" id="seoTitle">
+
+      <label for="seoDescription">SEO description</label>
+      <textarea id="seoDescription"></textarea>
+
+      <label for="images">Product images (you can select several)</label>
+      <input type="file" id="images" accept="image/*" multiple>
+      <div class="previews" id="previews"></div>
+
+      <fieldset>
+        <legend>Sizes / colors (optional)</legend>
+        <div id="variantRows"></div>
+        <button type="button" class="primary add-variant" id="addVariantBtn" style="margin-top:8px;">+ Add size/color option</button>
+      </fieldset>
+
+      <button type="submit" class="primary" id="submitBtn">Add product</button>
+      <div class="status" id="status"></div>
+    </form>
+  </div>
+
+  <!-- MANAGE PRODUCTS -->
+  <div class="panel" id="panel-manage">
+    <div class="card">
+      <button class="primary" id="refreshBtn" style="margin-top:0;">Load products</button>
+      <div id="productList"></div>
+      <div class="status" id="manageStatus"></div>
+    </div>
+  </div>
+
+  <div class="lock">Only for Sunday Aesthetics staff</div>
+</div>
+
+<script>
+  const WORKER_URL = "https://red-voice-72c2.safae-chaoui.workers.dev";
+
+  // Tabs
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById("panel-" + tab.dataset.tab).classList.add("active");
+    });
+  });
+
+  function getPassword() {
+    return document.getElementById("password").value;
+  }
+
+  // ---------- Images ----------
+  let imagesBase64 = [];
+  document.getElementById("images").addEventListener("change", (e) => {
+    imagesBase64 = [];
+    const previews = document.getElementById("previews");
+    previews.innerHTML = "";
+    [...e.target.files].forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        imagesBase64.push(reader.result);
+        const img = document.createElement("img");
+        img.src = reader.result;
+        previews.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
+  // ---------- Variants ----------
+  const variantRows = document.getElementById("variantRows");
+  document.getElementById("addVariantBtn").addEventListener("click", () => {
+    const row = document.createElement("div");
+    row.className = "variant-row";
+    row.innerHTML = `
+      <input type="text" placeholder="Size (e.g. M)" class="v-size">
+      <input type="text" placeholder="Color (e.g. Black)" class="v-color">
+      <input type="number" placeholder="Price" class="v-price" min="0">
+      <input type="number" placeholder="Stock" class="v-stock" min="0">
+      <button type="button" class="del-btn">✕</button>
+    `;
+    row.querySelector(".del-btn").addEventListener("click", () => row.remove());
+    variantRows.appendChild(row);
+  });
+
+  function collectVariants() {
+    return [...variantRows.querySelectorAll(".variant-row")].map(row => ({
+      size: row.querySelector(".v-size").value.trim(),
+      color: row.querySelector(".v-color").value.trim(),
+      price: row.querySelector(".v-price").value || document.getElementById("price").value,
+      stock: row.querySelector(".v-stock").value,
+    })).filter(v => v.size || v.color);
+  }
+
+  // ---------- Add product ----------
+  const form = document.getElementById("productForm");
+  const status = document.getElementById("status");
+  const submitBtn = document.getElementById("submitBtn");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    status.className = "status";
+    status.textContent = "";
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Adding…";
+
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          password: getPassword(),
+          category: document.getElementById("category").value,
+          title: document.getElementById("title").value,
+          price: document.getElementById("price").value,
+          stock: document.getElementById("stock").value,
+          description: document.getElementById("description").value,
+          tags: document.getElementById("tags").value,
+          seoTitle: document.getElementById("seoTitle").value,
+          seoDescription: document.getElementById("seoDescription").value,
+          images: imagesBase64,
+          variants: collectVariants(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Something went wrong");
+
+      status.className = "status ok";
+      status.textContent = "Product added ✓";
+      form.reset();
+      document.getElementById("previews").innerHTML = "";
+      variantRows.innerHTML = "";
+      imagesBase64 = [];
+    } catch (err) {
+      status.className = "status err";
+      status.textContent = err.message;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Add product";
+    }
+  });
+
+  // ---------- Manage products ----------
+  const productList = document.getElementById("productList");
+  const manageStatus = document.getElementById("manageStatus");
+
+  document.getElementById("refreshBtn").addEventListener("click", loadProducts);
+
+  async function loadProducts() {
+    manageStatus.className = "status";
+    manageStatus.textContent = "Loading…";
+    manageStatus.style.display = "block";
+    productList.innerHTML = "";
+
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "list", password: getPassword() }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Could not load products");
+
+      manageStatus.style.display = "none";
+
+      data.products.forEach(p => {
+        const item = document.createElement("div");
+        item.className = "product-item";
+        item.innerHTML = `
+          ${p.image ? `<img src="${p.image}">` : `<div style="width:52px;height:52px;background:var(--paper);border-radius:6px;"></div>`}
+          <div class="info">
+            <div class="name">${p.title}</div>
+            <div class="price">${p.price ? p.price + " MAD" : ""} — ${p.status}</div>
+          </div>
+          <button class="del-btn">Delete</button>
+        `;
+        item.querySelector(".del-btn").addEventListener("click", () => deleteProduct(p.id, item));
+        productList.appendChild(item);
+      });
+    } catch (err) {
+      manageStatus.className = "status err";
+      manageStatus.textContent = err.message;
+    }
+  }
+
+  async function deleteProduct(id, itemEl) {
+    if (!confirm("Delete this product?")) return;
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", password: getPassword(), productId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Could not delete");
+      itemEl.remove();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+</script>
+</body>
+</html>
